@@ -11,8 +11,7 @@ import io.github.macfja.mpv.communication.handling.MessageHandlerInterface;
 import io.github.macfja.mpv.communication.handling.NamedEventHandler;
 import io.github.macfja.mpv.communication.handling.PropertyObserver;
 
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -168,6 +167,7 @@ public class Service implements MpvService {
         ProcessBuilder pb = new ProcessBuilder(Arrays.asList(mpvPath, "--idle=yes", "--force-window=no", "--input-ipc-server=" + socketPath));
         try {
             mpvProcess = pb.start();
+            startReaderThreads();
             Thread.sleep(500);
             ioCommunication.open();
             isInitialized = true;
@@ -176,6 +176,32 @@ public class Service implements MpvService {
             isInitialized = false;
         }
         logger.info("mpv started, socketPath={}", socketPath);
+    }
+    
+    private void startReaderThreads() {
+        createReaderThread(mpvProcess.getInputStream(), false).start();
+        createReaderThread(mpvProcess.getErrorStream(), true).start();
+    }
+
+    private Thread createReaderThread(InputStream inputStream, boolean isStderr) {
+        Thread stderrReader = new Thread(() -> {
+            String line;
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                while ((line = reader.readLine()) != null) {
+                    if (isStderr) {
+                        logger.warn("MPV stderr: {}", line);
+                    } else {
+                        logger.debug("MPV stdout: {}", line);
+                    }
+                }
+            } catch (IOException e) {
+                logger.debug("MPV {} closed", isStderr ? "stderr" : "stdout");
+            }
+        });
+        stderrReader.setDaemon(true);
+
+        return stderrReader;
     }
 
     @Override
