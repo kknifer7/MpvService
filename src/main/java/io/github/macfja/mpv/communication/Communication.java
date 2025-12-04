@@ -1,16 +1,18 @@
 package io.github.macfja.mpv.communication;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonObject;
+import io.github.kknifer7.util.GsonUtil;
+import io.github.kknifer7.util.SystemUtil;
 import io.github.macfja.mpv.communication.handling.MessageHandlerInterface;
+import org.scalasbt.ipcsocket.UnixDomainSocket;
+import org.scalasbt.ipcsocket.Win32NamedPipeSocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Serializable;
+import java.io.*;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,7 +26,7 @@ public class Communication implements CommunicationInterface {
     /**
      * The process used to write and read data.
      */
-    private Process ioSocket;
+    private Socket ioSocket;
     /**
      * The writer
      */
@@ -46,7 +48,11 @@ public class Communication implements CommunicationInterface {
     /**
      * The listening part
      */
-    private MessagesListener messagesListener;
+    private final MessagesListener messagesListener;
+    /**
+     * Indicate if the communication is open
+     */
+    private boolean isOpen = false;
 
     @Override
     public void setExitOnClose(boolean exitOnClose) {
@@ -89,12 +95,17 @@ public class Communication implements CommunicationInterface {
      * Check if every component is ready ti be used.
      * Start them if necessary.
      *
-     * @throws IOException If an error occurs when opening the communication
+     * @throws IOException If an error occurs when opening the communication or if the communication was closed unexpectedly.
      */
     private void ensureIoReady() throws IOException {
-        if (ioWriter == null || !messagesListener.isRunning() || ioSocket == null) {
-            open();
+        if (ioWriter != null && messagesListener.isRunning() && ioSocket != null) {
+
+            return;
         }
+        if (isOpen) {
+            throw new IOException("The communication was closed unexpectedly");
+        }
+        open();
     }
 
     @Override
@@ -104,13 +115,14 @@ public class Communication implements CommunicationInterface {
         ArrayList<Object> parameters = new ArrayList<>();
         parameters.add(command);
         parameters.addAll(arguments == null ? Collections.EMPTY_LIST : arguments);
-        JSONObject json = new JSONObject();
-        json.put("command", parameters);
+        JsonObject json = new JsonObject();
+        json.add("command", GsonUtil.toJsonTree(parameters));
         int requestId = ((int) Math.ceil(Math.random() * 1000));
-        json.put("request_id", requestId);
-        logger.debug("Send: " + json.toJSONString());
+        json.addProperty("request_id", requestId);
+        String jsonStr = GsonUtil.toJson(json);
+        logger.debug("Send: {}", jsonStr);
 
-        ioWriter.write(json.toJSONString());
+        ioWriter.write(jsonStr);
         ioWriter.newLine();
         ioWriter.flush();
 
@@ -118,7 +130,7 @@ public class Communication implements CommunicationInterface {
     }
 
     @Override
-    public void simulateMessage(JSONObject message) {
+    public void simulateMessage(JsonObject message) {
         messagesListener.handleLine(message);
     }
 
@@ -126,10 +138,9 @@ public class Communication implements CommunicationInterface {
     public void open() throws IOException {
         logger.info("Starting processes");
         try {
-            if (ioSocket == null || ioSocket.exitValue() != -1) {
+            if (ioSocket == null) {
                 logger.info("Start MPV communication");
-                ProcessBuilder builder = new ProcessBuilder(Arrays.asList("nc", "-U", socketPath));
-                ioSocket = builder.start();
+                ioSocket = newClientSocket();
                 Thread.sleep(500);
             }
         } catch (IOException e) {
@@ -143,27 +154,39 @@ public class Communication implements CommunicationInterface {
 
         if (ioWriter == null) {
             logger.info("Start MPV writer");
-            ioWriter = new BufferedWriter(new OutputStreamWriter(ioSocket.getOutputStream()));
+            ioWriter = new BufferedWriter(new OutputStreamWriter(ioSocket.getOutputStream(), StandardCharsets.UTF_8));
         }
-
         if (!messagesListener.isRunning()) {
             logger.info("Start MPV reader");
             messagesListener.start(ioSocket.getInputStream());
         }
+        isOpen = true;
+    }
+
+    private Socket newClientSocket() throws IOException {
+        return SystemUtil.IS_OS_WINDOWS ?
+                new Win32NamedPipeSocket(socketPath) : new UnixDomainSocket(socketPath);
     }
 
     @Override
     public void close() throws IOException {
+        boolean closed = false;
+
+        if (ioSocket == null && ioWriter == null) {
+
+            return;
+        }
         try {
-            if (ioSocket != null) {
-                ioSocket.exitValue();
-            }
-        } catch (Exception e) {
             if (exitOnClose) {
-                write("exit", null);
+                write("quit", null);
             }
-            ioWriter.close();
-            ioSocket.destroy();
+            if (ioWriter != null) {
+                ioWriter.close();
+                closed = true;
+            }
+            if (!closed && ioSocket != null) {
+                ioSocket.close();
+            }
         } finally {
             ioSocket = null;
             ioWriter = null;

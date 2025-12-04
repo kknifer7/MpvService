@@ -1,6 +1,6 @@
 package io.github.macfja.mpv.communication;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonObject;
 import io.github.macfja.mpv.communication.handling.HandlerAwareInterface;
 
 import java.io.Closeable;
@@ -40,12 +40,7 @@ public interface CommunicationInterface extends HandlerAwareInterface, Closeable
      */
     int write(String command, List<? extends Serializable> arguments) throws IOException;
 
-    /**
-     * Simulated the receive of a message
-     *
-     * @param message The message to receive
-     */
-    void simulateMessage(JSONObject message);
+    void simulateMessage(JsonObject message);
 
     /**
      * Open the communication with MPV

@@ -9,7 +9,7 @@ abstract public class NamedEventHandler extends AbstractEventHandler {
     /**
      * The name of the event to handle
      */
-    private String eventName;
+    private final String eventName;
 
     /**
      * Constructor.

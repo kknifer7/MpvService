@@ -1,6 +1,6 @@
 package io.github.macfja.mpv.communication.handling;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonObject;
 
 import java.util.Date;
 
@@ -44,7 +44,7 @@ abstract public class ThresholdPropertyObserver extends PropertyObserver {
     }
 
     @Override
-    public boolean canHandle(JSONObject message) {
+    public boolean canHandle(JsonObject message) {
         boolean eventMatching = super.canHandle(message);
 
         return eventMatching && inSchedule();
@@ -62,7 +62,7 @@ abstract public class ThresholdPropertyObserver extends PropertyObserver {
     }
 
     @Override
-    public void handle(JSONObject message) {
+    public void handle(JsonObject message) {
         if (inSchedule()) {
             lastExecutionTime = (new Date()).getTime();
             super.handle(message);

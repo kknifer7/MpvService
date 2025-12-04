@@ -1,6 +1,6 @@
 package io.github.macfja.mpv;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonObject;
 import io.github.macfja.mpv.communication.handling.NamedEventHandler;
 import io.github.macfja.mpv.communication.handling.PropertyObserver;
 
@@ -119,14 +119,14 @@ public interface MpvService extends Closeable {
      * @param eventName The event name
      * @param data      The data associated with the event
      */
-    void fireEvent(String eventName, JSONObject data);
+    void fireEvent(String eventName, JsonObject data);
 
     /**
      * Fire a complex event
      *
      * @param event The event Json Object
      */
-    void fireEvent(JSONObject event);
+    void fireEvent(JsonObject event);
 
     /**
      * Wait for an event to occurs.

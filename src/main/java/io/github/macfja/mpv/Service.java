@@ -1,14 +1,15 @@
 package io.github.macfja.mpv;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import io.github.kknifer7.util.GsonUtil;
+import io.github.kknifer7.util.SystemUtil;
 import io.github.macfja.mpv.communication.Communication;
 import io.github.macfja.mpv.communication.handling.AbstractEventHandler;
 import io.github.macfja.mpv.communication.handling.AbstractMessageHandler;
 import io.github.macfja.mpv.communication.handling.MessageHandlerInterface;
 import io.github.macfja.mpv.communication.handling.NamedEventHandler;
 import io.github.macfja.mpv.communication.handling.PropertyObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -20,6 +21,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The default/base implementation of MpvService.
@@ -36,13 +40,13 @@ public class Service implements MpvService {
      */
     protected boolean isInitialized = false;
     /**
-     * The path to path to the MPV communication socket
+     * The path to the MPV communication socket
      */
-    private String socketPath;
+    private final String socketPath;
     /**
      * The path to the MPV binary
      */
-    private String mpvPath;
+    private final String mpvPath;
     /**
      * The process that contains the MPV instance
      */
@@ -64,22 +68,20 @@ public class Service implements MpvService {
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
-     * The constructor.
-     * Path to MPV defaulted to "mpv"
-     */
-    public Service() {
-        this("mpv");
-    }
-
-    /**
      * The class constructor.
      *
      * @param mpvPath Path to MPV binary
      */
     public Service(String mpvPath) {
+        String socketName = "mpvsocket_" + System.currentTimeMillis();
+
         this.mpvPath = mpvPath;
 
-        socketPath = System.getProperty("java.io.tmpdir") + this.getClass().getName();
+        if (SystemUtil.IS_OS_WINDOWS) {
+            socketPath = "\\\\.\\pipe\\" + socketName;
+        } else {
+            socketPath = System.getProperty("java.io.tmpdir") + socketName;
+        }
         ioCommunication.setSocketPath(socketPath);
         ioCommunication.addMessageHandler(new AbstractEventHandler() {
             @Override
@@ -88,20 +90,17 @@ public class Service implements MpvService {
             }
 
             @Override
-            public Runnable doHandle(JSONObject message) {
-                final String eventName = message.getString("event");
+            public Runnable doHandle(JsonObject message) {
+                final String eventName = message.get("event").getAsString();
 
                 if (!eventName.equals(waitedEvent)) {
                     return null;
                 }
 
-                return new Runnable() {
-                    @Override
-                    public void run() {
-                        logger.debug(" - The event was waited");
-                        synchronized (waitedEvent) {
-                            waitedEvent.notify();
-                        }
+                return () -> {
+                    logger.debug(" - The event was waited");
+                    synchronized (waitedEvent) {
+                        waitedEvent.notify();
                     }
                 };
             }
@@ -123,12 +122,12 @@ public class Service implements MpvService {
                     tries++;
 
                     if (tries > 10) {// We wait for more than 5sec
-                        logger.warn("Timeout for response of " + command + " / " + arguments.toString());
+                        logger.warn("Timeout for response of {} / {}", command, arguments.toString());
                         waitFor.notify();
                         break;
                     }
                 } catch (InterruptedException e) {
-                    logger.warn("Response waiting interrupted for " + command + " / " + arguments.toString(), e);
+                    logger.warn("Response waiting interrupted for {} / {}", command, arguments.toString(), e);
                     waitFor.notify();
                     break;
                 }
@@ -176,6 +175,7 @@ public class Service implements MpvService {
             logger.error("Unable to start Mpv", e);
             isInitialized = false;
         }
+        logger.info("mpv started, socketPath={}", socketPath);
     }
 
     @Override
@@ -196,7 +196,9 @@ public class Service implements MpvService {
     @Override
     public <T> T getProperty(String name, Class<T> type) throws IOException {
         String result = getProperty(name);
-        return JSONObject.parseObject(result).getObject("data", type);
+        JsonElement dataElm = GsonUtil.fromJson(result, JsonObject.class).get("data");
+
+        return GsonUtil.fromJson(dataElm, type);
     }
 
     @Override
@@ -221,7 +223,7 @@ public class Service implements MpvService {
     }
 
     @Override
-    public void unregisterPropertyChange(String propertyName) throws IOException {
+    public void unregisterPropertyChange(String propertyName) {
         List<PropertyObserver> toRemove = new ArrayList<>();
         for (MessageHandlerInterface messageHandler : ioCommunication.getMessageHandlers()) {
             if (messageHandler instanceof PropertyObserver
@@ -260,28 +262,18 @@ public class Service implements MpvService {
     }
 
     @Override
-    public void fireEvent(String eventName, JSONObject data) {
-        JSONObject object = new JSONObject();
-        object.put("event", eventName);
+    public void fireEvent(String eventName, JsonObject data) {
+        JsonObject object = new JsonObject();
+        object.addProperty("event", eventName);
         if (data != null) {
-            object.put("data", data);
+            object.add("data", data);
         }
         fireEvent(object);
     }
 
     @Override
-    public void fireEvent(JSONObject event) {
+    public void fireEvent(JsonObject event) {
         ioCommunication.simulateMessage(event);
-    }
-
-
-    @Override
-    protected void finalize() throws Throwable {
-        try {
-            close();
-        } finally {
-            super.finalize();
-        }
     }
 
     @Override
@@ -295,18 +287,20 @@ public class Service implements MpvService {
         } catch (Exception e) {
             mpvProcess.destroy();
         } finally {
-            Files.deleteIfExists(Paths.get(socketPath));
+            if (!SystemUtil.IS_OS_WINDOWS) {
+                Files.deleteIfExists(Paths.get(socketPath));
+            }
         }
     }
 
     /**
      * Internal observer to get the response of a command
      */
-    private class SynchronousSend extends AbstractMessageHandler {
+    private static class SynchronousSend extends AbstractMessageHandler {
         /**
          * List of all request/response waited and received (but not yet retrieved)
          */
-        private Map<Integer, String> data = new HashMap<>();
+        private final Map<Integer, String> data = new HashMap<>();
 
         /**
          * Add a new waited response
@@ -351,15 +345,15 @@ public class Service implements MpvService {
         }
 
         @Override
-        public boolean canHandle(JSONObject message) {
-            return message.containsKey("request_id") && hasRequest(message.getIntValue("request_id"));
+        public boolean canHandle(JsonObject message) {
+            return message.has("request_id") && hasRequest(message.get("request_id").getAsInt());
         }
 
         @Override
-        synchronized public Runnable doHandle(final JSONObject message) {
-            int requestId = message.getIntValue("request_id");
+        synchronized public Runnable doHandle(final JsonObject message) {
+            int requestId = message.get("request_id").getAsInt();
             if (hasRequest(requestId)) {
-                data.put(requestId, message.toJSONString());
+                data.put(requestId, GsonUtil.toJson(message));
                 notify();
             }
             return null;

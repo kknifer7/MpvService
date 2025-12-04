@@ -1,6 +1,6 @@
 package io.github.macfja.mpv.communication.handling;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonObject;
 
 /**
  * An abstract/base implementation of a message handler for events
@@ -9,11 +9,11 @@ import com.alibaba.fastjson.JSONObject;
  */
 abstract public class AbstractEventHandler extends AbstractMessageHandler {
     @Override
-    public boolean canHandle(JSONObject message) {
-        if (!message.containsKey("event")) {
+    public boolean canHandle(JsonObject message) {
+        if (!message.has("event")) {
             return false;
         }
-        return canHandle(message.getString("event"));
+        return canHandle(message.get("event").getAsString());
     }
 
     /**

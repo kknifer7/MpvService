@@ -1,6 +1,9 @@
 package io.github.macfja.mpv.communication.handling;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import io.github.kknifer7.util.GsonUtil;
 
 /**
  * Abstract PropertyObserver class.
@@ -67,27 +70,45 @@ public abstract class PropertyObserver extends AbstractMessageHandler implements
     abstract public void changed(String propertyName, Object value, Integer id);
 
     @Override
-    public boolean canHandle(JSONObject message) {
-        return message.containsKey("event")
-                && message.getString("event").equals("property-change")
-                && message.getString("name").equals(propertyName)
-                && message.get("data") != null
-                && message.getIntValue("id") == id;
+    public boolean canHandle(JsonObject message) {
+        return message.has("event")
+                && message.get("event").getAsString().equals("property-change")
+                && message.get("name").getAsString().equals(propertyName)
+                && message.has("data")
+                && message.has("id")
+                && message.get("id").getAsInt() == id;
 
     }
 
     @Override
-    public Runnable doHandle(final JSONObject message) {
-        return new Runnable() {
-            @Override
-            public void run() {
-                changed(
-                        message.getString("name"),
-                        message.get("data"),
-                        message.getInteger("id")
-                );
+    public Runnable doHandle(final JsonObject message) {
+        return () -> changed(
+                message.get("name").getAsString(),
+                jsonElementToObject(message.get("data")),
+                message.get("id").getAsInt()
+        );
+    }
+
+    private Object jsonElementToObject(JsonElement jsonElement) {
+        if (jsonElement == null || jsonElement.isJsonNull()) {
+
+            return null;
+        }
+        if (jsonElement.isJsonPrimitive()) {
+            JsonPrimitive jsonPrimitive = jsonElement.getAsJsonPrimitive();
+            if (jsonPrimitive.isBoolean()) {
+
+                return jsonPrimitive.getAsBoolean();
+            } else if (jsonPrimitive.isNumber()) {
+
+                return jsonPrimitive.getAsNumber();
+            } else if (jsonPrimitive.isString()) {
+
+                return jsonPrimitive.getAsString();
             }
-        };
+        }
+
+        return jsonElement;
     }
 
     /**
@@ -98,11 +119,14 @@ public abstract class PropertyObserver extends AbstractMessageHandler implements
      * @param id           The group id of the event
      * @return The event json
      */
-    public static JSONObject buildPropertyChangeEvent(String propertyName, Object newValue, int id) {
-        return (new JSONObject())
-                .fluentPut("event", "property-change")
-                .fluentPut("name", propertyName)
-                .fluentPut("data", newValue)
-                .fluentPut("id", id);
+    public static JsonObject buildPropertyChangeEvent(String propertyName, Object newValue, int id) {
+        JsonObject jsonObject = new JsonObject();
+
+        jsonObject.addProperty("event", "property-change");
+        jsonObject.addProperty("name", propertyName);
+        jsonObject.add("data", GsonUtil.toJsonTree(newValue));
+        jsonObject.addProperty("id", id);
+
+        return jsonObject;
     }
 }

@@ -1,6 +1,7 @@
 package io.github.macfja.mpv.communication;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonObject;
+import io.github.kknifer7.util.GsonUtil;
 import io.github.macfja.mpv.communication.handling.HandlerAwareInterface;
 import io.github.macfja.mpv.communication.handling.MessageHandlerInterface;
 import org.slf4j.Logger;
@@ -32,7 +33,7 @@ public class MessagesListener extends Thread implements HandlerAwareInterface {
     /**
      * The list of all message handler
      */
-    private List<MessageHandlerInterface> handlers = new ArrayList<>();
+    private final List<MessageHandlerInterface> handlers = new ArrayList<>();
 
     /**
      * Indicate if the listener is running
@@ -68,10 +69,10 @@ public class MessagesListener extends Thread implements HandlerAwareInterface {
      *
      * @param line The received line in JSON format
      */
-    public void handleLine(JSONObject line) {
+    public void handleLine(JsonObject line) {
         for (MessageHandlerInterface handler : handlers) {
             if (handler.canHandle(line)) {
-                logger.debug("Handling: " + line.toJSONString() + " with: " + handler.toString());
+                logger.debug("Handling: {} with: {}", line, handler);
                 handler.handle(line);
             }
         }
@@ -84,13 +85,13 @@ public class MessagesListener extends Thread implements HandlerAwareInterface {
 
         while (sc.hasNextLine()) {
             final String line = sc.nextLine();
-            logger.debug("Receive: " + line);
+            logger.debug("Receive: {}", line);
             if (line == null || !line.startsWith("{")) {
                 logger.debug(" - Not a valid JSON");
                 continue;
             }
 
-            JSONObject object = JSONObject.parseObject(line);
+            JsonObject object = GsonUtil.fromJson(line, JsonObject.class);
             handleLine(object);
         }
 

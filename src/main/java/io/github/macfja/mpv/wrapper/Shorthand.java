@@ -1,7 +1,8 @@
 package io.github.macfja.mpv.wrapper;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import io.github.kknifer7.util.GsonUtil;
 import io.github.macfja.mpv.MpvService;
 import io.github.macfja.mpv.communication.handling.NamedEventHandler;
 
@@ -75,7 +76,7 @@ public class Shorthand implements MpvService {
     }
 
     /**
-     * Start the playback if is was paused, or stop it in the other case
+     * Start the playback if is paused, or stop it in the other case
      *
      * @throws IOException If an error occurs when sending the command
      */
@@ -103,11 +104,10 @@ public class Shorthand implements MpvService {
      */
     public Map<TimeKey, BigDecimal> getTimes() throws IOException {
         Map<TimeKey, BigDecimal> result = new HashMap<>();
-        JSONObject object;
-        object = JSON.parseObject(service.getProperty("time-remaining"));
-        BigDecimal remaining = object.getBigDecimal("data");
-        object = JSON.parseObject(service.getProperty("time-pos"));
-        BigDecimal elapsing = object.getBigDecimal("data");
+        JsonObject object = GsonUtil.fromJson(service.getProperty("time-remaining"), JsonObject.class);
+        BigDecimal remaining = object.get("data").getAsBigDecimal();
+        object = GsonUtil.fromJson(service.getProperty("time-pos"), JsonObject.class);
+        BigDecimal elapsing = object.get("data").getAsBigDecimal();
 
         result.put(TimeKey.Remaining, remaining);
         result.put(TimeKey.Elapsing, elapsing);
@@ -121,7 +121,7 @@ public class Shorthand implements MpvService {
      * @throws IOException If an error occurs when sending the command
      */
     public void next() throws IOException {
-        service.sendCommand("playlist-next", new ArrayList<Serializable>());
+        service.sendCommand("playlist-next", new ArrayList<>());
     }
 
     /**
@@ -130,7 +130,7 @@ public class Shorthand implements MpvService {
      * @throws IOException If an error occurs when sending the command
      */
     public void previous() throws IOException {
-        service.sendCommand("playlist-prev", new ArrayList<Serializable>());
+        service.sendCommand("playlist-prev", new ArrayList<>());
     }
 
     @Override
@@ -161,7 +161,15 @@ public class Shorthand implements MpvService {
     @Override
     public <T> T getProperty(String name, Class<T> type) throws IOException {
         String result = getProperty(name);
-        return JSONObject.parseObject(result).getObject("data", type);
+        JsonObject jsonObject = GsonUtil.fromJson(result, JsonObject.class);
+        JsonElement dataElm = jsonObject.get("data");
+
+        if (dataElm == null) {
+
+            return null;
+        }
+
+        return GsonUtil.fromJson(dataElm, type);
     }
 
     @Override
@@ -190,12 +198,12 @@ public class Shorthand implements MpvService {
     }
 
     @Override
-    public void fireEvent(String eventName, JSONObject data) {
+    public void fireEvent(String eventName, JsonObject data) {
         service.fireEvent(eventName, data);
     }
 
     @Override
-    public void fireEvent(JSONObject event) {
+    public void fireEvent(JsonObject event) {
         service.fireEvent(event);
     }
 
@@ -241,7 +249,7 @@ public class Shorthand implements MpvService {
         /**
          * The value to used in the command
          */
-        private String type;
+        private final String type;
 
         Seek(String type) {
             this.type = type;

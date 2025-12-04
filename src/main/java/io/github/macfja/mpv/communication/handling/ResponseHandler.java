@@ -1,7 +1,7 @@
 package io.github.macfja.mpv.communication.handling;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonObject;
+import io.github.kknifer7.util.GsonUtil;
 
 /**
  * An abstract/base implementation of a message handler to handle result of a command
@@ -10,11 +10,11 @@ import com.alibaba.fastjson.JSONObject;
  */
 public abstract class ResponseHandler extends AbstractMessageHandler {
     @Override
-    public boolean canHandle(JSONObject message) {
-        if (!message.containsKey("request_id")) {
+    public boolean canHandle(JsonObject message) {
+        if (!message.has("request_id")) {
             return false;
         }
-        return canHandle(message.getInteger("request_id"));
+        return canHandle(message.get("request_id").getAsInt());
     }
 
     /**
@@ -32,7 +32,7 @@ public abstract class ResponseHandler extends AbstractMessageHandler {
      * @return {@code true} if the result is a success
      */
     public static boolean isResultSuccess(String rawResult) {
-        return isResultSuccess(JSON.parseObject(rawResult));
+        return isResultSuccess(GsonUtil.fromJson(rawResult, JsonObject.class));
     }
 
     /**
@@ -41,7 +41,7 @@ public abstract class ResponseHandler extends AbstractMessageHandler {
      * @param result The JSONObject to check
      * @return {@code true} if the result is a success
      */
-    public static boolean isResultSuccess(JSONObject result) {
-        return result.containsKey("error") && result.getString("error").equals("success");
+    public static boolean isResultSuccess(JsonObject result) {
+        return result.has("error") && result.get("error").getAsString().equals("success");
     }
 }

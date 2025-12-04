@@ -1,109 +1,44 @@
 # MpvService
 
-MpvService allow you the communicate with [Mpv Media Player](https://mpv.io/) with the use of JSON-IPC interface. 
+MPV JSON-IPC 通信Java实现，基于 [MacFJA/MpvService](https://github.com/MacFJA/MpvService)。
 
-## Installation
+本项目可以让你唤起外部的MPV播放器，并与之建立连接，调用播放器内置的API以控制播放器行为、获取播放器状态等。
 
-Clone the project:
+详情请看MPV的官方文档：https://mpv.io/manual/master/#json-ipc
+
+## 主要功能
+
+请先查看原项目：[MacFJA/MpvService](https://github.com/MacFJA/MpvService)
+
+相比于原项目，本项目做了如下改进：
+
+- 支持Windows：与MVP通信时，原项目使用NCat监听Unix套接字，兼容性不好，且不支持Win32命名管道，本项目则使用了[sbt/ipcsocket](https://github.com/sbt/ipcsocket)作为通信方案，解决了该问题；
+
+- 更新了过时的依赖；将 [fastjson](https://github.com/alibaba/fastjson) 更换为了 [gson]([GitHub - google/gson: A Java serialization/deserialization library to convert Java Objects into JSON and back](https://github.com/google/gson))；
+
+- 修复了过时的单元测试；
+
+- 将项目依赖上传maven中央仓库，便于开发者导入使用；
+
+- 少量其他优化。
+
+## 使用
+
+Gradle：
+
+```groovy
+implementation("io.github.kknifer7:mpv:0.1.0")
 ```
-git clone https://github.com/MacFJA/MpvService.git
-```
-Install the project into your local Maven repository:
-```
-cd MpvService/
-mvn clean
-mvn install
-```
-Remove the source:
-```
-cd ..
-rm -r MpvService/
-```
-Add the dependency in your Maven project:
+
+Maven：
+
 ```xml
-<project>
-    <!-- ... -->
-    <dependencies>
-        <!-- ... -->
-        <dependency>
-            <groupId>io.github.macfja</groupId>
-            <artifactId>mpv</artifactId>
-            <version>0.2.0</version>
-        </dependency>
-        <!-- ... -->
-    </dependencies>
-    <!-- ... -->
-</project>
+<dependency>
+    <groupId>io.github.kknifer7</groupId>
+    <artifactId>mpv</artifactId>
+    <version>0.1.0</version>
+</dependency>
 ```
-
-## Usage
-
-```java
-import com.alibaba.fastjson.JSONObject;
-import io.github.macfja.mpv.Service;
-import io.github.macfja.mpv.communication.handling.PropertyObserver;
-import io.github.macfja.mpv.wrapper.Shorthand;
-
-import java.io.IOException;
-
-class App {
-    public static void main(String[] args) {
-        Shorthand mpv = new Shorthand(new Service());
-
-        // Register the modification of the metadata
-        // Indicate that the media changed
-        try {
-            mpv.registerPropertyChange(new PropertyObserver("metadata") {
-                @Override
-                public void changed(String propertyName, Object value, Integer id) {
-                    JSONObject metadata = (JSONObject) value;
-                    System.out.println(String.format(
-                            "Playing %s by %s",
-                            metadata.getString("title"),
-                            metadata.getString("artist")
-                    ));
-                }
-            });
-        } catch (IOException e) {
-            System.err.println("Unable to register property change!");
-        }
-
-        // Add media files to the current playlist
-        try {
-            mpv.addMedia("path/to/a/media.mp3", true);
-            mpv.addMedia("path/another/media.mp3", true);
-            mpv.addMedia("path/to/the/third/media.mp3", true);
-        } catch (IOException e) {
-            System.err.println("Unable to add media!");
-        }
-
-        // Start playing
-        try {
-            mpv.play();
-        } catch (IOException e) {
-            System.err.println("Unable to start playback!");
-        }
-        
-        // Wait the end of the first file
-        mpv.waitForEvent("end-file", 5 * 60 * 1000); // timeout to 5 minutes
-    }
-}
-```
-
-## Other implementation of mpv IPC
-
- - https://github.com/gustaebel/python-mpv (Pyhton3)
- - https://github.com/momomo5717/emms-player-simple-mpv (Emacs Lisp)
- - https://github.com/kljohann/mpv.el (Emacs Lisp)
- - https://github.com/siikamiika/mpv-python-ipc (Python)
- - https://github.com/DexterLB/mpvipc (Go)
- - https://github.com/gregadams4/mpvjson (Go)
- - https://github.com/mibli/mpvctl (Bash)
- - https://github.com/Syndim/rust-mpv-ipc (Rust)
- - https://github.com/enzzc/simplempv (Python)
- - https://gitlab.com/mpv-ipc/ncmpvc (Shell / ncurses)
- - https://gitlab.com/mpv-ipc/mpvipc (Rust)
- - https://gitlab.com/mpv-ipc/mpvc (Rust)
 
 ## License
 

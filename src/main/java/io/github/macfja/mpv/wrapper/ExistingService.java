@@ -16,8 +16,8 @@ public class ExistingService extends Service {
      *
      * @param socketPath The path to the socket where MPV communicate
      */
-    public ExistingService(String socketPath) {
-        super();
+    public ExistingService(String mpvPath, String socketPath) {
+        super(mpvPath);
         // Don't quit the existing service.
         ioCommunication.setExitOnClose(false);
         ioCommunication.setSocketPath(socketPath);

@@ -1,6 +1,6 @@
 package io.github.macfja.mpv.communication.handling;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonObject;
 
 /**
  * An abstract class for message handler that allow parallel work.
@@ -10,7 +10,7 @@ import com.alibaba.fastjson.JSONObject;
  */
 public abstract class AbstractMessageHandler implements MessageHandlerInterface {
     @Override
-    public void handle(JSONObject message) {
+    public void handle(JsonObject message) {
         Runnable worker = doHandle(message);
 
         if (worker == null) {
@@ -25,5 +25,5 @@ public abstract class AbstractMessageHandler implements MessageHandlerInterface 
      * @param message The message to process
      * @return A runnable code (can be {@code null})
      */
-    abstract public Runnable doHandle(JSONObject message);
+    abstract public Runnable doHandle(JsonObject message);
 }
