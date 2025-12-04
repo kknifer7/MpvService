@@ -14,9 +14,9 @@ MPV JSON-IPC 通信Java实现，基于 [MacFJA/MpvService](https://github.com/Ma
 
 - 支持Windows：与MVP通信时，原项目使用NCat监听Unix套接字，兼容性不好，且不支持Win32命名管道，本项目则使用了[sbt/ipcsocket](https://github.com/sbt/ipcsocket)作为通信方案，解决了该问题；
 
-- 更新了过时的依赖；将 [fastjson](https://github.com/alibaba/fastjson) 更换为了 [gson]([GitHub - google/gson: A Java serialization/deserialization library to convert Java Objects into JSON and back](https://github.com/google/gson))；
+- 更新过时的依赖；将 [fastjson](https://github.com/alibaba/fastjson) 更换为 [gson](https://github.com/google/gson)；
 
-- 修复了过时的单元测试；
+- 修复过时的单元测试；
 
 - 将项目依赖上传maven中央仓库，便于开发者导入使用；
 
