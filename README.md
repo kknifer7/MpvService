@@ -12,7 +12,9 @@ MPV JSON-IPC 通信Java实现，基于 [MacFJA/MpvService](https://github.com/Ma
 
 相比于原项目，本项目做了如下改进：
 
-- 支持Windows：与MPV通信时，原项目使用NCat监听Unix套接字，兼容性不好，且不支持Win32命名管道，本项目则使用了[sbt/ipcsocket](https://github.com/sbt/ipcsocket)作为通信方案，解决了该问题；
+- 支持Windows：与MPV通信时，原项目使用NCat监听Unix套接字，兼容性不好，且不支持Win32命名管道，本项使用 [sbt/ipcsocket](https://github.com/sbt/ipcsocket) 作为通信方案，解决了该问题；
+
+- 修复影响使用的Bug；
 
 - 更新过时的依赖；将 [fastjson](https://github.com/alibaba/fastjson) 更换为 [gson](https://github.com/google/gson)；
 
@@ -27,7 +29,7 @@ MPV JSON-IPC 通信Java实现，基于 [MacFJA/MpvService](https://github.com/Ma
 Gradle：
 
 ```groovy
-implementation("io.github.kknifer7:mpv:0.1.0")
+implementation("io.github.kknifer7:mpv:0.1.1")
 ```
 
 Maven：
@@ -36,7 +38,7 @@ Maven：
 <dependency>
     <groupId>io.github.kknifer7</groupId>
     <artifactId>mpv</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 </dependency>
 ```
 
