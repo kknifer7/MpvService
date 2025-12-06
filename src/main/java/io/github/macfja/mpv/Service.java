@@ -78,7 +78,7 @@ public class Service implements MpvService {
         if (SystemUtil.IS_OS_WINDOWS) {
             socketPath = "\\\\.\\pipe\\" + socketName;
         } else {
-            socketPath = System.getProperty("java.io.tmpdir") + socketName;
+            socketPath = Paths.get(System.getProperty("java.io.tmpdir"), socketName).toString();
         }
         ioCommunication.setSocketPath(socketPath);
         ioCommunication.addMessageHandler(new AbstractEventHandler() {
