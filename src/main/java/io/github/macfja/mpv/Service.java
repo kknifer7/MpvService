@@ -14,12 +14,7 @@ import io.github.macfja.mpv.communication.handling.PropertyObserver;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,16 +57,20 @@ public class Service implements MpvService {
      */
     private String waitedEvent;
     /**
-     * The class logger
-     */
-    protected Logger logger = LoggerFactory.getLogger(getClass());
-
-    /**
      * The class constructor.
      *
      * @param mpvPath Path to MPV binary
      */
     public Service(String mpvPath) {
+        this(mpvPath, Collections.emptyList());
+    }
+    /**
+     * The class constructor.
+     *
+     * @param mpvPath Path to MPV binary
+     * @param mpvExtraRunArgs Extra arguments to pass to MPV (besides --input-ipc-server)
+     */
+    public Service(String mpvPath, List<String> mpvExtraRunArgs) {
         String socketName = "mpvsocket_" + System.currentTimeMillis();
 
         this.mpvPath = mpvPath;
@@ -105,8 +104,13 @@ public class Service implements MpvService {
             }
         });
         ioCommunication.addMessageHandler(waitFor);
-        initialize();
+        initialize(mpvExtraRunArgs);
     }
+
+    /**
+     * The class logger
+     */
+    protected Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
     public String sendCommand(String command, List<? extends Serializable> arguments) throws IOException {
@@ -162,9 +166,17 @@ public class Service implements MpvService {
 
     /**
      * Start all needed process
+     * @param extraArgs Extra arguments to pass to MPV (besides --input-ipc-server)
      */
-    protected void initialize() {
-        ProcessBuilder pb = new ProcessBuilder(Arrays.asList(mpvPath, "--idle=yes", "--force-window=no", "--input-ipc-server=" + socketPath));
+    protected void initialize(List<String> extraArgs) {
+        List<String> cmd;
+
+        Objects.requireNonNull(extraArgs, "extraArgs cannot be null");
+        cmd = new ArrayList<>(extraArgs.size() + 2);
+        cmd.add(mpvPath);
+        cmd.addAll(extraArgs);
+        cmd.add("--input-ipc-server=" + socketPath);
+        ProcessBuilder pb = new ProcessBuilder(cmd);
         try {
             mpvProcess = pb.start();
             startReaderThreads();

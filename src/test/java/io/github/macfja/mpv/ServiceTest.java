@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 public class ServiceTest {
     static MpvService mpvService;
@@ -26,7 +27,7 @@ public class ServiceTest {
             Assertions.fail();
         }
 
-        mpvService = new Service(mpvPath);
+        mpvService = new Service(mpvPath, List.of("--idle=yes", "--force-window=no"));
     }
     @AfterAll
     static public void finish() {

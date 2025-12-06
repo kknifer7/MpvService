@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 public class ThresholdPropertyObserverTest {
     static MpvService mpvService;
@@ -26,7 +27,7 @@ public class ThresholdPropertyObserverTest {
 
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
         System.setProperty("org.slf4j.simpleLogger.showShortLogName", "true");
-        mpvService = (new Service(mpvPath));
+        mpvService = (new Service(mpvPath, List.of("--idle=yes", "--force-window=no")));
     }
     @AfterAll
     static public void finish() {

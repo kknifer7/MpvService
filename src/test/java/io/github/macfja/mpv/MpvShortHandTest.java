@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 
 public class MpvShortHandTest {
@@ -32,7 +33,7 @@ public class MpvShortHandTest {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
         System.setProperty("org.slf4j.simpleLogger.showShortLogName", "true");
 
-        mpvService = new Shorthand((new Service(mpvPath)));
+        mpvService = new Shorthand((new Service(mpvPath, List.of("--idle=yes", "--force-window=no"))));
     }
 
     @AfterAll

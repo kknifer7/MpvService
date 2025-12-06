@@ -37,7 +37,7 @@ public class ConcurrencyTest {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "HH:mm:ss");
 
-        mpvService = new Service(mpvPath);
+        mpvService = new Service(mpvPath, List.of("--idle=yes", "--force-window=no"));
     }
 
     @AfterAll

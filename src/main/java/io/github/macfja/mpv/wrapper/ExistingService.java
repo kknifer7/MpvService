@@ -3,6 +3,7 @@ package io.github.macfja.mpv.wrapper;
 import io.github.macfja.mpv.Service;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * An implementation to connect to an existing instance of MPV
@@ -24,7 +25,7 @@ public class ExistingService extends Service {
     }
 
     @Override
-    protected void initialize() {
+    protected void initialize(List<String> extraArgs) {
         try {
             ioCommunication.open();
         } catch (IOException e) {
