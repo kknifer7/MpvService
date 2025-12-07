@@ -29,7 +29,7 @@ MPV JSON-IPC 通信Java实现，基于 [MacFJA/MpvService](https://github.com/Ma
 Gradle：
 
 ```groovy
-implementation("io.github.kknifer7:mpv:0.1.1")
+implementation("io.github.kknifer7:mpv:0.1.3")
 ```
 
 Maven：
@@ -38,7 +38,7 @@ Maven：
 <dependency>
     <groupId>io.github.kknifer7</groupId>
     <artifactId>mpv</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.3</version>
 </dependency>
 ```
 
